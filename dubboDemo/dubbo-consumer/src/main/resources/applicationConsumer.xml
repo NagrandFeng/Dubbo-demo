@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd "><!-- consumer application name -->
+	<!-- 服务使用方应用名，用于计算依赖关系，不是匹配条件,不要和提供方一样，以免造成不必要的麻烦 -->
+	<dubbo:application name="consumer-of-service" />
+
+	<!-- 使用zookeeper注册,需要在本地开启一个zookeeper注册服务 -->
+	 <dubbo:registry protocol="zookeeper" address="127.0.0.1:2181" />
+	<!-- 使用multicast广播注册中心暴露服务地址,这里额地址要与提供方一样 -->
+	<!--<dubbo:registry address="multicast://224.0.0.2:9090" />-->
+	<dubbo:consumer timeout="100" />
+	<!-- 生成远程服务代理，和本地bean一样使用stringService -->
+	<dubbo:reference id="stringService" interface="service.IHelloString" />
+	<dubbo:reference id="userService" interface="service.UserService" />
+</beans>
