@@ -83,7 +83,7 @@
         </dependency>
         <dependency>
             <groupId>demo.dubbo</groupId>
-            <artifactId>demo-dubbo-producer</artifactId>
+            <artifactId>demo-dubbo-provider</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
