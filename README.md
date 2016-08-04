@@ -87,3 +87,53 @@ clientPort=2181
 	<dubbo:reference id="stringService" interface="service.IHelloString" />
 	<dubbo:reference id="userService" interface="service.UserService" />
 ```
+
+##dubbo的配置文件中各标签的含义
+```xml
+<dubbo:reference/> 引用配置，用于创建一个远程服务代理，一个引用可以指向多个注册中心。
+<dubbo:protocol/> 协议配置，用于配置提供服务的协议信息，协议由提供方指定，消费方被动接受。
+<dubbo:application/> 应用配置，用于配置当前应用信息，不管该应用是提供者还是消费者。
+<dubbo:module/> 模块配置，用于配置当前模块信息，可选。
+<dubbo:registry/> 注册中心配置，用于配置连接注册中心相关信息。
+<dubbo:monitor/> 监控中心配置，用于配置连接监控中心相关信息，可选。
+<dubbo:provider/> 提供方的缺省值，当ProtocolConfig和ServiceConfig某属性没有配置时，采用此缺省值，可选。
+<dubbo:consumer/> 消费方缺省配置，当ReferenceConfig某属性没有配置时，采用此缺省值，可选。
+<dubbo:method/> 方法配置，用于ServiceConfig和ReferenceConfig指定方法级的配置信息。
+<dubbo:argument/> 用于指定方法参数配置。
+```
+###dubbo协议配置
+<dubbo:protocol name="dubbo" dispatcher="all" threadpool="fixed" threads="100" />
+protocol,必填项，缺省协议为dubbo，采用单一长连接和NIO异步通讯，适合小数据量大并发的服务调用，以及服务消费者机器数远大于服务提供者机器数的情况
+
+每服务每提供者每消费者使用单一长连接，如果数据量较大，可以使用多个连接
+
+port：可选项，dubbo协议缺省端口为20880，rmi协议缺省端口为1099，http和hessian协议缺省端口为80。如果配置为-1或者没有配置port，则会分配一个没有被占用的端口。Dubbo 2.4.0+，分配的端口在协议缺省端口的基础上增长，确保端口段可控。
+
+threadpool的值
+fixed:固定大小线程池，启动时建立线程，不关闭，一直持有（缺省）
+cached 缓存线程池，空闲一分钟自动删除，需要时重建
+limited 可伸缩线程池，但池中的线程数只会增长不会收缩
+
+在dubbo.properties中的配置：dubbo.service.protocol=dubbo
+
+
+###dubbo:application 配置
+name:必填项，当前应用名称，用于注册中心计算应用间依赖关系，注意：消费者和提供者应用名不要一样，此参数不是匹配条件，你当前项目叫什么名字就填什么，和提供者消费者角色无关，比如：kylin应用调用了morgan应用的服务，则kylin项目配成kylin，morgan项目配成morgan，可能kylin也提供其它服务给别人使用，但kylin项目永远配成kylin，这样注册中心将显示kylin依赖于morgan
+
+
+###dubbo:registry配置
+id:可选项，注册中心引用BeanId，可以在<dubbo:service registry="">或<dubbo:reference registry="">中引用此ID
+
+address:必填项，注册中心服务器地址，如果地址没有端口缺省为9090，同一集群内的多个地址用逗号分隔，如：ip:port,ip:port，不同集群的注册中心，请配置多个<dubbo:registry>标签
+
+
+###dubbo:service配置
+interface:必填项，服务接口名
+
+ref: 必填项，服务对象实现引用
+
+
+###dubbo:consumer配置
+无必填项
+上面使用到的timeout : 表示服务调用超时时间(ms)
+
