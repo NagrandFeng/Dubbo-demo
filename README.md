@@ -160,37 +160,36 @@ watcher：事件回调接口.(后面对这个接口做详细说明)
 当连接成功建立后, 会回调watcher的process方法
 建立连接的java实例代码如下：
 ```java
-public class ZKConnection { 
-    /**
-     * server列表, 如果有多个则以逗号分割
-     */ 
-    protected String hosts = "127.0.0.1"; 
-    /**
-     * 连接的超时时间, 毫秒
-     */ 
-    private static final int SESSION_TIMEOUT = 5000; 
-    private CountDownLatch connectedSignal = new CountDownLatch(1); 
-    protected ZooKeeper zk; 
+  /**
+     * 连接zookeeper服务器
+     *
+     * @throws Exception
+     */
+    public void connect() throws Exception {
+        zk = new ZooKeeper(hosts, SESSION_TIMEOUT, new ConnWatcher());
+        // 等待连接完成
+        connectedSignal.await();
+        //创建基本节点
+        /*try {
+            createBasePath();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        }*/
+    }
 
-    /**
-     * 连接zookeeper server
-     */ 
-    public void connect() throws Exception { 
-        zk = new ZooKeeper(hosts, SESSION_TIMEOUT, new ConnWatcher()); 
-        // 等待连接完成 
-        connectedSignal.await(); 
-    } 
-
-    public class ConnWatcher implements Watcher { 
-        public void process(WatchedEvent event) { 
-            // 连接建立, 回调process接口时, 其event.getState()为KeeperState.SyncConnected 
-            if (event.getState() == KeeperState.SyncConnected) { 
-                // 放开闸门, wait在connect方法上的线程将被唤醒 
-                connectedSignal.countDown(); 
-            } 
-        } 
-    } 
-} 
+    public class ConnWatcher implements Watcher {
+        public void process(WatchedEvent event) {
+            // 连接建立, 回调process接口时, 其event.getState()为KeeperState.SyncConnected
+            if (event.getState() == Event.KeeperState.SyncConnected) {
+                // 放开闸门, wait在connect方法上的线程将被唤醒
+                connectedSignal.countDown();
+                //打印连接信
+                System.out.println("----- ----- event:  path=" + event.getPath() + ", typeValue=" + event.getType().getIntValue() + ", stateValue=" + event.getState().getIntValue());
+            }
+        }
+    }
 ```
 创建znode
 ZooKeeper对象的create方法用于创建znode.
@@ -278,7 +277,7 @@ void delete(final String path, int version); 
 version参数的作用同setData方法.
 
 ###zookeeper中的Access Control（ACL）机制
-1、在Zookeeper中，node的ACL是没有继承关系的，是独立控制的。Zookeeper的ACL，可以从三个维度来理解：scheme;user; permission，通常表示为scheme:id:permissions, 下面从这三个方面分别来介绍：
+1、在Zookeeper中，node的ACL是没有继承关系的，是独立控制的。Zookeeper的ACL，可以从三个维度来理解：scheme;user; permission，通常表示为scheme : id : permissions, 下面从这三个方面分别来介绍：
 
 （1）scheme: 验证方式，也是scheme对应于采用哪种方案来进行权限管理，zookeeper实现了一个pluggable的ACL方案，可以通过扩展scheme，来扩展ACL的机制。
 有下面几种scheme：
