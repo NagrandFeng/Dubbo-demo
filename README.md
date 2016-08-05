@@ -137,3 +137,220 @@ ref: 必填项，服务对象实现引用
 无必填项
 上面使用到的timeout : 表示服务调用超时时间(ms)
 
+#zookeeper java api使用入门
+
+###1、首先需要在maven中添加依赖
+```xml
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>3.4.8</version>
+        </dependency>
+```
+
+###2、创建连接和回调接口
+有关的java api
+```java
+ZooKeeper(String connectString, int sessionTimeout, Watcher watcher) throws IOException  
+```
+参数说明：
+connection:zookeeper server列表, 可以是一个，如果存在多个server列表则以逗号隔开. ZooKeeper对象初始化后, 将从列表中选择一个server, 并尝试与其建立连接. 如果连接建立失败, 则会从列表的剩余项中选择一个server, 并再次尝试建立连接.
+sessionTimeout：指定连接的超时时间
+watcher：事件回调接口.(后面对这个接口做详细说明)
+当连接成功建立后, 会回调watcher的process方法
+建立连接的java实例代码如下：
+```java
+public class ZKConnection { 
+    /**
+     * server列表, 如果有多个则以逗号分割
+     */ 
+    protected String hosts = "127.0.0.1"; 
+    /**
+     * 连接的超时时间, 毫秒
+     */ 
+    private static final int SESSION_TIMEOUT = 5000; 
+    private CountDownLatch connectedSignal = new CountDownLatch(1); 
+    protected ZooKeeper zk; 
+
+    /**
+     * 连接zookeeper server
+     */ 
+    public void connect() throws Exception { 
+        zk = new ZooKeeper(hosts, SESSION_TIMEOUT, new ConnWatcher()); 
+        // 等待连接完成 
+        connectedSignal.await(); 
+    } 
+
+    public class ConnWatcher implements Watcher { 
+        public void process(WatchedEvent event) { 
+            // 连接建立, 回调process接口时, 其event.getState()为KeeperState.SyncConnected 
+            if (event.getState() == KeeperState.SyncConnected) { 
+                // 放开闸门, wait在connect方法上的线程将被唤醒 
+                connectedSignal.countDown(); 
+            } 
+        } 
+    } 
+} 
+```
+创建znode
+ZooKeeper对象的create方法用于创建znode.
+
+Java api 
+String create(String path, byte[] data, List acl, CreateMode createMode); 
+以下为各个参数的详细说明:
+path:znode的路径.
+data:与znode关联的数据.
+acl. 指定权限信息, 如果不想指定权限, 可以传入Ids.OPEN_ACL_UNSAFE.
+指定znode类型. CreateMode是一个枚举类, 从中选择一个成员传入即可
+CreateMode的各种成员含义：
+PERSISTENT： 创建的znode不会随着客户端连接的断开而删除
+PERSISTENT_SEQUENTIAL ：创建的znode不会随着客户端连接的断开而删除，并且每次删除后，再次创建同样的名字将在data后面追加一个单调递增的值
+EPHEMERAL：创建的znode是会随着客户端连接的断开而删除的
+EPHEMERAL_SEQUENTIAL：创建的znode是会随着客户端连接的断开而删除的，并且每次删除后，再次创建同样的名字将在data后面追加一个单调递增的值
+
+Java代码  
+```java
+ /**
+     * 创建一个节点，如已存在则不会创建
+     *
+     * @param path for example : /testPath 或者 /testpath/test
+     */
+    public void createNode(String path) {
+        //初次使用,ACL以及createMode都默认
+        try {
+            Stat stat = zk.exists(path, false);
+            if (stat != null) {
+                System.out.println("节点:" + path + "已存在,不需要创建");
+                return;
+            }
+            String nodeCreate = zk.create(path, "init-data".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            System.out.println("node create:" + nodeCreate);
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+```
+
+获取子node列表
+ZooKeeper对象的getChildren方法用于获取子node列表.
+
+Java代码 
+```java
+List getChildren(String path, boolean watch); 
+```
+watch参数用于指定是否监听path node的子node的增加和删除事件, 以及path node本身的删除事件.
+
+判断znode是否存在
+ZooKeeper对象的exists方法用于判断指定znode是否存在.
+
+```java
+Stat exists(String path, boolean watch); 
+```
+watch参数用于指定是否监听path node的创建, 删除事件, 以及数据更新事件. 如果该node存在, 则返回该node的状态信息, 否则返回null.
+
+获取node中关联的数据
+ZooKeeper对象的getData方法用于获取node关联的数据.
+
+```java
+byte[] getData(String path, boolean watch, Stat stat); 
+```
+watch参数用于指定是否监听path node的删除事件, 以及数据更新事件, 注意, 不监听path node的创建事件, 因为如果path node不存在, 该方法将抛出KeeperException.NoNodeException异常.
+stat参数是个传出参数, getData方法会将path node的状态信息设置到该参数中.
+
+更新node中关联的数据
+ZooKeeper对象的setData方法用于更新node关联的数据.
+```java
+Stat setData(final String path, byte data[], int version); 
+```
+data:待更新的数据.
+version：参数指定要更新的数据的版本, 如果version和真实的版本不同, 更新操作将失败.，指定version为-1则忽略版本检查.
+返回path node的状态信息.
+
+删除znode
+ZooKeeper对象的delete方法用于删除znode.
+
+```java
+void delete(final String path, int version); 
+```
+version参数的作用同setData方法.
+
+###zookeeper中的Access Control（ACL）机制
+1、在Zookeeper中，node的ACL是没有继承关系的，是独立控制的。Zookeeper的ACL，可以从三个维度来理解：scheme;user; permission，通常表示为scheme:id:permissions, 下面从这三个方面分别来介绍：
+
+（1）scheme: 验证方式，也是scheme对应于采用哪种方案来进行权限管理，zookeeper实现了一个pluggable的ACL方案，可以通过扩展scheme，来扩展ACL的机制。
+有下面几种scheme：
+world: 它下面只有一个id, 叫anyone, world:anyone代表任何人，zookeeper中对所有人有权限的结点就是属于world:anyone的
+auth: 它不需要id, 只要是通过authentication的user都有权限（zookeeper支持通过kerberos来进行authencation, 也支持username/password形式的authentication)
+digest: 它对应的id为username:BASE64(SHA1(password))，它需要先通过username:password形式的authentication
+ip: 它对应的id为客户机的IP地址，设置的时候可以设置一个ip段，比如ip:192.168.1.0/16, 表示匹配前16个bit的IP段
+super: 在这种scheme情况下，对应的id拥有超级权限，可以做任何事情(cdrwa)
+
+（2）id: id与scheme是紧密相关的，具体的情况参照scheme中的
+
+（3）permission:
+zookeeper目前支持下面一些权限：
+CREATE(c): 创建权限，可以在在当前node下创建child node
+DELETE(d): 删除权限，可以删除当前的node
+READ(r): 读权限，可以获取当前node的数据，可以list当前node所有的child nodes
+WRITE(w): 写权限，可以向当前node写数据
+ADMIN(a): 管理权限，可以设置当前node的permission
+就是在zkCli客户端中，输入getAcl命令看到的 cdrwa
+
+###如何在zkCli中设置Acl
+```
+setAcl /test ip:127.0.0.1:crwda
+```
+表示设置路径我 /test的节点的 对应操作ip为127.0.0.1，拥有的权限是 cdrwa，也就是所有权限
+
+###如何通过java api设置acl
+```java 
+     /**
+     * 创建带有digest的node
+     *
+     * @param path
+     */
+    public void createNodeByDigest(String path) {
+        //通过设置digest类型的scheme的acl创建znode
+        List<ACL> acls = new ArrayList<ACL>();
+        try {
+            Stat basePathStat = zk.exists(path, false);
+            if (basePathStat != null) {
+                zk.delete(path, -1);
+            }
+            Id id1 = new Id("digest", DigestAuthenticationProvider.generateDigest("admin:yeshufeng"));
+            ACL acl1 = new ACL(ZooDefs.Perms.ALL, id1);
+            acls.add(acl1);
+            zk.addAuthInfo("digest", "admin:yeshufeng".getBytes());
+            String createNode = zk.create(path, "init-data".getBytes(), acls, CreateMode.PERSISTENT);
+            System.out.println("create node:" + createNode);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        }
+
+    }
+```
+generateDigest("admin:yeshufeng") ，参数为xxx:xxxx的形式的原因
+其中，在DigestAuthenticationProvider.generateDigest(String idPassword)方法的源码中
+将idPassword通过 ' : ' 切成两段，后面的代以我的知识就看不懂了~只能理解一个大概
+源码如下：
+```java
+public static String generateDigest(String idPassword) throws NoSuchAlgorithmException {
+	String[] parts = idPassword.split(":", 2);
+	 byte[] digest = MessageDigest.getInstance("SHA1").digest(idPassword.getBytes());
+	 return parts[0] + ":" + base64Encode(digest);
+ }
+```
+
+###zookeeper的watcher机制
+
+
+
+
+
