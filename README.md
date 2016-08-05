@@ -348,6 +348,34 @@ public static String generateDigest(String idPassword) throws NoSuchAlgorithmExc
 ```
 
 ###zookeeper的watcher机制
+在ZooKeeper中，接口类Watcher定义了事件通知相关的逻辑，包含了KeeperState和EventType两个枚举类，分别代表通知状态和事件类型。还有一个比较重要的接口方法：
+```java
+abstract public void process(WatchedEvent event);
+```
+这个方法用于处理事件通知，每个实现类都应该自己实现合适的处理逻辑。参数WatchedEvent类封装了上面提到的两个枚举类，以及触发事件对应的ZK节点path，当然，这个path不一定每次通知都有，例如会话建立，会话失效或连接断开等通知类型，就不是针对某一个单独path的。
+
+如果需要Watcher，我们可以自定义Watcher，如果是Boolean型变量，当为true时，则使用系统默认的Watcher，系统默认的Watcher是在Zookeeper的构造函数中定义的Watcher。参数中Watcher为空或者false，表示不启用Wather。
+
+Watch的特点
+一次性触发器
+客户端在Znode设置了Watch时，如果Znode内容发生改变，那么客户端就会获得Watch事件。例如：客户端设置getData("/test", true)后，如果/test发生改变或者删除，那么客户端就会得到一个/test的Watch事件，但是/test再次发生变化，那客户端是无法收到Watch事件的，除非客户端设置了新的Watch。
+
+发送至客户端
+Watch事件是异步发送到Client。Zookeeper可以保证客户端发送过去的更新顺序是有序的。例如：某个Znode没有设置watcher，那么客户端对这个Znode设置Watcher发送到集群之前，该客户端是感知不到该Znode任何的改变情况的。换个角度来解释：由于Watch有一次性触发的特点，所以在服务器端没有Watcher的情况下，Znode的任何变更就不会通知到客户端。不过，即使某个Znode设置了Watcher，且在Znode有变化的情况下通知到了客户端，但是在客户端接收到这个变化事件，但是还没有再次设置Watcher之前，如果其他客户端对该Znode做了修改，这种情况下，Znode第二次的变化客户端是无法收到通知的。这可能是由于网络延迟或者是其他因素导致，所以我们使用Zookeeper不能期望能够监控到节点每次的变化。Zookeeper只能保证最终的一致性，而无法保证强一致性。
+
+Watcher接口已经提供了基本的回调方法用于处理来自服务器的通知。因此，我们只要在合适的地方实现这个接口，并传给服务器即可。
+在构造方法 中
+```java
+ZooKeeper(String connectString, int sessionTimeout, Watcher watcher)
+```
+这个是ZooKeeper的一个构造方法，与ZK创建连接的时候会用到这个。这里的第三个参数：Watcher，这就是一个注册Watcher的地方，传入的参数就是开发者自己Watcher接口实现。需要注意的是，这个地方注册的Watcher实现，会成为当前ZK会话的默认Watcher实现。也就是说，其它地方如果也想注册一个Watcher，那么是可以默认使用这个实现的。
+在下面的读写API接口中
+```java
+public Stat exists(String path, boolean watch)throws KeeperException, InterruptedException
+public List<String> getChildren(String path, boolean watch)throws KeeperException,InterruptedException
+public byte[] getData(String path,boolean watch,Stat stat)throws KeeperException,InterruptedException
+public void register(Watcher watcher)
+```
 
 
 
