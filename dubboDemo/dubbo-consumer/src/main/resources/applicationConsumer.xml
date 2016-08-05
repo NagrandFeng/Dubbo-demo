@@ -13,4 +13,7 @@
 	<!-- 生成远程服务代理，和本地bean一样使用stringService -->
 	<dubbo:reference id="stringService" interface="service.IHelloString" />
 	<dubbo:reference id="userService" interface="service.UserService" />
+	<!--
+	<dubbo:reference id="<bean id>" interface="<dubbo:service中的interface属性的值>"
+	-->
 </beans>

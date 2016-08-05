@@ -8,6 +8,8 @@
 	
 	 <!--使用zookeeper注册，需要在本地配置zookeeper -->
 	<dubbo:registry protocol="zookeeper" address="127.0.0.1:2181" />
+
+
 	<dubbo:protocol name="dubbo" port="20880" />
 
 	<!-- 使用multicast广播注册中心暴露服务地址 -->
@@ -20,4 +22,10 @@
 	<!-- 服务提供者声明需要暴露的服务接口 -->
 	<dubbo:service interface="service.IHelloString " token="true" ref="stringService" executes="10" />
 	<dubbo:service interface="service.UserService" token="true" ref="userService" executes="10"  />
+
+
+	<!--
+	<bean id="xxxService" class="<package>.<class>"/>
+	<dubbo:service interface="<package>.<class>" token="true/false" ref="<bean id>" executes="<同一时间执行线程数>" />
+	-->
 </beans>
