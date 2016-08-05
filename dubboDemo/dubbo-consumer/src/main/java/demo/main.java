@@ -4,6 +4,10 @@ import entity.User;
 
 public class main {
     public static void main(String[] args) {
+        Consumer consumer = new Consumer();
+        System.out.println(consumer.sayHello("*"));
+    }
+    public static void test(){
         Consumer[] consumers=new Consumer[10];
         for (int i = 0; i < consumers.length; i++) {
             Consumer consumer = new Consumer();
@@ -40,5 +44,4 @@ public class main {
             }
         }
     }
-
 }

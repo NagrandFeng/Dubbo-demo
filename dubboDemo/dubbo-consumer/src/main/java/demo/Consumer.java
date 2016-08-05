@@ -33,4 +33,11 @@ public class Consumer {
 		UserService userService = (UserService) context.getBean("userService");
 		return userService.getUser(id);
 	}
+	public String sayHello(String input){
+		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
+				new String[] { "applicationConsumer.xml" });
+		context.start();
+		IHelloString stringService = (IHelloString) context.getBean("stringService");
+		return stringService.sayHello("*");
+	}
 }

@@ -166,16 +166,21 @@ public class ZkConnection {
         return zk.getACL(path, stat);
     }
 
+    /**
+     * 递归删除节点的入口方法
+     * @param path
+     * @throws Exception
+     */
     public void deleteDigui(String path) throws Exception {
         Stat stat = zk.exists(path,false);
         if (stat == null) {
-            System.out.println("");
+            System.out.println("节点路径"+path+"不存在");
         }
         this.deletePath(path, zk);
     }
 
     /**
-     * zookeeper不允许直接删除含有子节点的节点;如果你需要删除当前节点以及其所有子节点,需要递归来做
+     * zookeeper不允许直接删除含有子节点的节点;如果需要删除当前节点以及其所有子节点,需要递归来做
      *
      * @param path
      * @param zooKeeper
@@ -198,7 +203,12 @@ public class ZkConnection {
         }
     }
 
-    //删除节点,删除时比较version,避免删除时被其他client修改
+
+    /**
+     * 删除节点,删除时比较version,避免删除时被其他client修改
+     * @param path
+     * @return
+     */
     public boolean delete(String path) {
         try {
             Stat stat = zk.exists(path, false);
@@ -215,6 +225,47 @@ public class ZkConnection {
         return true;
     }
 
+    /**
+     * 递归遍历输入节点路径下的所有节点
+     * @param path 可以是 单独的'/',但若是加入了指定路径则最后一位不能是'/'
+     * @return
+     * @throws Exception
+     */
+    public List<String> getChild(String path) throws Exception{
+        Stat stat=zk.exists(path,false);
+        List<String> result=new ArrayList<String>();
+        if(stat==null){
+            System.out.println("节点："+path+"不存在");
+            result.add("未找到任何节点");
+            return result;
+        }
+        return this.getChild(path,result);
+    }
+
+    /**
+     * 递归遍历，
+     * @param basePath 递归传递节点路径
+     * @param result 存储结果的list数据
+     * @return
+     * @throws Exception
+     */
+    public List<String> getChild(String basePath,List<String> result) throws Exception{
+        List<String> nodes=zk.getChildren(basePath,false);
+        for (String childPath:nodes) {
+            String newPath="";
+            if(basePath.equals("/")){ //输入路径若是'/'，则不需要再添加一次 '/'
+                newPath=basePath+childPath;
+            }else{
+                newPath=basePath+"/"+childPath;
+            }
+            if( zk.getChildren(newPath,false).size()<=0){
+               result.add(newPath);
+            }else{
+                getChild(newPath,result);
+            }
+        }
+        return result;
+    }
     private String createBasePath() throws InterruptedException, KeeperException {
         // creat base path
         String result = "";
