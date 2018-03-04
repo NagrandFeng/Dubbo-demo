@@ -2,7 +2,7 @@
 # Dubbo-demo
 provider and consumer demo
 
-#简介
+# 简介
 项目的目录结构如下：
 dubbo-provider是服务提供方
 dubbo-consumer是服务消费者
@@ -10,7 +10,7 @@ zookeeper-3.4.8.tar.gz是zookeeper的windows环境安装包
 
 dubbo-provider服务提供方需要用到zookeeper注册服务
 
-##zookeeper在windows下的环境安装
+## zookeeper在windows下的环境安装
 1、下载上面的zookeeper-3.4.8.tar.gz到本地，完成解压
 
 2、在conf目录下增加一个zoo.cfg文件，可以直接把zoo_sample.cfg改为zoo.cfg，zookeeper在启动时会自动寻找conf下的zoo.cfg配置文件，zoo.cfg的
@@ -52,7 +52,7 @@ clientPort=2181
 
 5、到这里，就成功开启了一个本地的zookeeper服务器，端口为2181
 
-##完成provider服务提供者
+## 完成provider服务提供者
 
 服务提供者对外暴露接口IHelloString.changeString,UserService.getAllUser,UserService.getUser
 接口的实现参见demo中的代码
@@ -73,7 +73,7 @@ clientPort=2181
 	<dubbo:service interface="service.IHelloString " token="true" ref="stringService" executes="10" />
 	<dubbo:service interface="service.UserService" token="true" ref="userService" executes="10"  />
 ```
-##完成consumer服务消费者
+## 完成consumer服务消费者
 
 消费者在Pom.xml中加入对服务提供者的依赖，直接使用服务提供者的接口，接口可以在配置文件中的配置如下
 ```xml
@@ -101,7 +101,7 @@ clientPort=2181
 <dubbo:method/> 方法配置，用于ServiceConfig和ReferenceConfig指定方法级的配置信息。
 <dubbo:argument/> 用于指定方法参数配置。
 ```
-###dubbo协议配置
+### dubbo协议配置
 <dubbo:protocol name="dubbo" dispatcher="all" threadpool="fixed" threads="100" />
 protocol,必填项，缺省协议为dubbo，采用单一长连接和NIO异步通讯，适合小数据量大并发的服务调用，以及服务消费者机器数远大于服务提供者机器数的情况
 
@@ -117,29 +117,29 @@ limited 可伸缩线程池，但池中的线程数只会增长不会收缩
 在dubbo.properties中的配置：dubbo.service.protocol=dubbo
 
 
-###dubbo:application 配置
+### dubbo:application 配置
 name:必填项，当前应用名称，用于注册中心计算应用间依赖关系，注意：消费者和提供者应用名不要一样，此参数不是匹配条件，你当前项目叫什么名字就填什么，和提供者消费者角色无关，比如：kylin应用调用了morgan应用的服务，则kylin项目配成kylin，morgan项目配成morgan，可能kylin也提供其它服务给别人使用，但kylin项目永远配成kylin，这样注册中心将显示kylin依赖于morgan
 
 
-###dubbo:registry配置
+### dubbo:registry配置
 id:可选项，注册中心引用BeanId，可以在<dubbo:service registry="">或<dubbo:reference registry="">中引用此ID
 
 address:必填项，注册中心服务器地址，如果地址没有端口缺省为9090，同一集群内的多个地址用逗号分隔，如：ip:port,ip:port，不同集群的注册中心，请配置多个<dubbo:registry>标签
 
 
-###dubbo:service配置
+### dubbo:service配置
 interface:必填项，服务接口名
 
 ref: 必填项，服务对象实现引用
 
 
-###dubbo:consumer配置
+### dubbo:consumer配置
 无必填项
 上面使用到的timeout : 表示服务调用超时时间(ms)
 
-#zookeeper java api使用入门
+#  zookeeper java api使用入门
 
-###1、首先需要在maven中添加依赖
+### 1、首先需要在maven中添加依赖
 ```xml
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
@@ -148,7 +148,7 @@ ref: 必填项，服务对象实现引用
         </dependency>
 ```
 
-###2、创建连接和回调接口
+### 2、创建连接和回调接口
 有关的java api
 ```java
 ZooKeeper(String connectString, int sessionTimeout, Watcher watcher) throws IOException  
@@ -276,7 +276,7 @@ void delete(final String path, int version); 
 ```
 version参数的作用同setData方法.
 
-###zookeeper中的Access Control（ACL）机制
+### zookeeper中的Access Control（ACL）机制
 1、在Zookeeper中，node的ACL是没有继承关系的，是独立控制的。Zookeeper的ACL，可以从三个维度来理解：scheme;user; permission，通常表示为scheme : id : permissions, 下面从这三个方面分别来介绍：
 
 （1）scheme: 验证方式，也是scheme对应于采用哪种方案来进行权限管理，zookeeper实现了一个pluggable的ACL方案，可以通过扩展scheme，来扩展ACL的机制。
@@ -298,13 +298,13 @@ WRITE(w): 写权限，可以向当前node写数据
 ADMIN(a): 管理权限，可以设置当前node的permission
 就是在zkCli客户端中，输入getAcl命令看到的 cdrwa
 
-###如何在zkCli中设置Acl
+### 如何在zkCli中设置Acl
 ```
 setAcl /test ip:127.0.0.1:crwda
 ```
 表示设置路径我 /test的节点的 对应操作ip为127.0.0.1，拥有的权限是 cdrwa，也就是所有权限
 
-###如何通过java api设置acl
+### 如何通过java api设置acl
 ```java 
      /**
      * 创建带有digest的node
@@ -347,7 +347,7 @@ public static String generateDigest(String idPassword) throws NoSuchAlgorithmExc
  }
 ```
 
-###zookeeper的watcher机制
+### zookeeper的watcher机制
 在ZooKeeper中，接口类Watcher定义了事件通知相关的逻辑，包含了KeeperState和EventType两个枚举类，分别代表通知状态和事件类型。还有一个比较重要的接口方法：
 ```java
 abstract public void process(WatchedEvent event);
